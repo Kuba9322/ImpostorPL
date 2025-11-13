@@ -41,7 +41,7 @@ import pl.kuce.impostorpl.ui.splash.FullscreenSplash
 import pl.kuce.impostorpl.ui.theme.AppBackground
 import pl.kuce.impostorpl.ui.theme.ImpostorPLTheme
 
-enum class Stage { SETTINGS, NAMES, PASS, REVEAL, FINISHED }
+enum class Stage { SETTINGS, NAMES, PASS, REVEAL, PRE_FINISHED, FINISHED }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -175,9 +175,15 @@ class MainActivity : ComponentActivity() {
                                         currentPlayer += 1
                                         stage = Stage.PASS
                                     } else {
-                                        stage = Stage.FINISHED
+                                        stage = Stage.PRE_FINISHED
                                     }
                                 }
+                            )
+                        }
+
+                        Stage.PRE_FINISHED -> {
+                            PreFinishedScreen(
+                                onEndRoundClick = { stage = Stage.FINISHED }
                             )
                         }
 
@@ -217,6 +223,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Composable
+    private fun PreFinishedScreen(
+        onEndRoundClick: () -> Unit
+    ) {
+        val context = LocalContext.current
+
+        LaunchedEffect(Unit) {
+            pl.kuce.impostorpl.sound.SoundPlayer.play(
+                context,
+                R.raw.start_sound
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            pl.kuce.impostorpl.ui.components.PrimaryButton(
+                text = "KONIEC RUNDY",
+                onClick = onEndRoundClick
+            )
+        }
+    }
 
     @Composable
     private fun FinishedScreen(

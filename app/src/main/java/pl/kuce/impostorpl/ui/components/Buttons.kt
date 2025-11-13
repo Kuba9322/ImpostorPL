@@ -8,10 +8,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import pl.kuce.impostorpl.R
+import pl.kuce.impostorpl.sound.SoundPlayer
 
 @Composable
 fun PrimaryButton(
@@ -20,8 +23,13 @@ fun PrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
+    val context = LocalContext.current
+
     Button(
-        onClick = onClick,
+        onClick = {
+            SoundPlayer.play(context, R.raw.click_sound)
+            onClick()
+        },
         enabled = enabled,
         shape = MaterialTheme.shapes.large,
         colors = ButtonDefaults.buttonColors(), // keep theme colors
@@ -46,6 +54,8 @@ fun ChoiceButton(
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+
     val colors = if (selected) {
         ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -58,7 +68,10 @@ fun ChoiceButton(
     }
 
     Button(
-        onClick = onClick,
+        onClick = {
+            SoundPlayer.play(context, R.raw.click_sound)
+            onClick()
+        },
         enabled = enabled,
         shape = MaterialTheme.shapes.large,
         colors = colors,
@@ -74,4 +87,3 @@ fun ChoiceButton(
         )
     }
 }
-
