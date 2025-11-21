@@ -4,26 +4,35 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import pl.kuce.impostorpl.R
+import pl.kuce.impostorpl.sound.SoundPlayer
 import pl.kuce.impostorpl.ui.components.PrimaryButton
 import androidx.compose.ui.Alignment as UiAlignment
 
@@ -125,6 +134,58 @@ fun GameSettingsScreen(
 }
 
 @Composable
+fun BottomBar(
+    soundOn: Boolean,
+    onToggleSound: () -> Unit,
+    onExitClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = 32.dp,
+                end = 32.dp,
+                bottom = 24.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = {
+                if (!soundOn) {
+                    SoundPlayer.play(R.raw.keyboard_click, force = true)
+                }
+                onToggleSound()
+            }
+        ) {
+            Icon(
+                painter = painterResource(
+                    if (soundOn) R.drawable.volume_up_40dp_d9d9d9 else R.drawable.volume_off_40dp_d9d9d9
+                ),
+                contentDescription = if (soundOn) "Dźwięk włączony" else "Dźwięk wyłączony",
+                tint = Color.White,
+                modifier = Modifier.size(36.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        IconButton(
+            onClick = {
+                SoundPlayer.play(R.raw.keyboard_click)
+                onExitClick()
+            }
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.exit_to_app_40dp_d9d9d9),
+                contentDescription = "Wyjście",
+                tint = Color.White,
+                modifier = Modifier.size(36.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun SettingStepper(
     title: String,
     value: Int,
@@ -157,20 +218,28 @@ private fun SettingStepper(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Button(
-                onClick = onDec,
+                onClick = {
+                    SoundPlayer.play(R.raw.keyboard_click)
+                    onDec()
+                },
                 enabled = canDec,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .weight(1f)
-                    .height(64.dp) // taller buttons
+                    .height(64.dp)
                     .semantics { contentDescription = decContentDesc }
             ) {
-                Text(text = "–", fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text(
+                    text = "–",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
             }
 
             Box(
                 modifier = Modifier
-                    .weight(1f)         // center column gets equal space as buttons
+                    .weight(1f)
                     .height(64.dp),
                 contentAlignment = UiAlignment.Center
             ) {
@@ -183,15 +252,23 @@ private fun SettingStepper(
             }
 
             Button(
-                onClick = onInc,
+                onClick = {
+                    SoundPlayer.play(R.raw.keyboard_click)
+                    onInc()
+                },
                 enabled = canInc,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .weight(1f)
-                    .height(64.dp) // taller buttons
+                    .height(64.dp)
                     .semantics { contentDescription = incContentDesc }
             ) {
-                Text(text = "+", fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text(
+                    text = "+",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
             }
         }
 

@@ -23,11 +23,9 @@ fun PrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    val context = LocalContext.current
-
     Button(
         onClick = {
-            SoundPlayer.play(context, R.raw.click_sound)
+            SoundPlayer.play(R.raw.keyboard_click)
             onClick()
         },
         enabled = enabled,
@@ -54,7 +52,6 @@ fun ChoiceButton(
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
 
     val colors = if (selected) {
         ButtonDefaults.buttonColors(
@@ -69,7 +66,7 @@ fun ChoiceButton(
 
     Button(
         onClick = {
-            SoundPlayer.play(context, R.raw.click_sound)
+            SoundPlayer.play(R.raw.keyboard_click)
             onClick()
         },
         enabled = enabled,

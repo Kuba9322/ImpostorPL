@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,12 +31,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import pl.kuce.impostorpl.feature.setup.BottomBar
 import pl.kuce.impostorpl.feature.setup.GameSettingsScreen
 import pl.kuce.impostorpl.feature.setup.PlayerNamesScreen
 import pl.kuce.impostorpl.feature.turn.PassPhoneScreen
 import pl.kuce.impostorpl.loader.ResourceWordLoader
 import pl.kuce.impostorpl.orchestrator.DefaultNextWordProvider
 import pl.kuce.impostorpl.orchestrator.NextWordProvider
+import pl.kuce.impostorpl.sound.SoundPlayer
 import pl.kuce.impostorpl.storage.InMemoryWordStore
 import pl.kuce.impostorpl.storage.PersistentDeckStore
 import pl.kuce.impostorpl.ui.components.ChoiceButton
@@ -47,17 +52,30 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        SoundPlayer.init(
+            applicationContext,
+            R.raw.keyboard_click,
+            R.raw.start_sound
+        )
+
         enableEdgeToEdge()
         setContent {
             ImpostorPLTheme {
                 var initDone by rememberSaveable { mutableStateOf(false) }
                 var timeDone by rememberSaveable { mutableStateOf(false) }
+                var isSoundOn by rememberSaveable { mutableStateOf(true) }
+                var showExitDialog by rememberSaveable { mutableStateOf(false) }
+
+                LaunchedEffect(isSoundOn) {
+                    SoundPlayer.enabled = isSoundOn
+                }
+
                 val ready = initDone && timeDone
 
                 val context = LocalContext.current
                 var nextWordProvider by remember { mutableStateOf<NextWordProvider?>(null) }
 
-                // initialize words/deck once; when done -> ready = true
                 LaunchedEffect(Unit) {
                     val initialWords = ResourceWordLoader.load(context, R.raw.words)
                     val wordStore = InMemoryWordStore(initial = initialWords)
@@ -129,111 +147,139 @@ class MainActivity : ComponentActivity() {
                     bgResId = R.drawable.my_bg,
                     darken = 0.75f
                 ) {
-                    when (stage) {
-                        Stage.SETTINGS -> {
-                            GameSettingsScreen(
-                                players = playersCount,
-                                onPlayersChange = { playersCount = it.coerceIn(3, 9) },
-                                impostorWinPoints = impostorWinPoints,
-                                onImpostorWinPointsChange = {
-                                    impostorWinPoints = it.coerceIn(1, 5)
-                                },
-                                playersWinPoints = playersWinPoints,
-                                onPlayersWinPointsChange = { playersWinPoints = it.coerceIn(0, 4) },
-                                impostorsCount = impostorsCount,
-                                onImpostorsCountChange = { impostorsCount = it.coerceIn(1, 2) },
-                                onNext = { stage = Stage.NAMES }
-                            )
-                        }
+                    Column(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
 
-                        Stage.NAMES -> {
-                            PlayerNamesScreen(
-                                playersCount = playersCount,
-                                names = players.map { it.name },
-                                onNameChange = { index, newName ->
-                                    players[index] = players[index].copy(name = newName)
-                                },
-                                onStart = { startRound() }
-                            )
-                        }
-
-                        Stage.PASS -> {
-                            PassPhoneScreen(
-                                playerLabel = players[currentPlayer].name,
-                                onPlayerReady = { stage = Stage.REVEAL }
-                            )
-                        }
-
-                        Stage.REVEAL -> {
-                            val isImpostor = players[currentPlayer].isImpostor
-                            pl.kuce.impostorpl.feature.turn.WordRevealScreen(
-                                playerNumber = currentPlayer + 1,
-                                isImpostor = isImpostor,
-                                word = roundWord,
-                                onMemorized = {
-                                    if (currentPlayer + 1 < playersCount) {
-                                        currentPlayer += 1
-                                        stage = Stage.PASS
-                                    } else {
-                                        stage = Stage.PRE_FINISHED
-                                    }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                        ) {
+                            when (stage) {
+                                Stage.SETTINGS -> {
+                                    GameSettingsScreen(
+                                        players = playersCount,
+                                        onPlayersChange = { playersCount = it.coerceIn(3, 9) },
+                                        impostorWinPoints = impostorWinPoints,
+                                        onImpostorWinPointsChange = {
+                                            impostorWinPoints = it.coerceIn(1, 5)
+                                        },
+                                        playersWinPoints = playersWinPoints,
+                                        onPlayersWinPointsChange = {
+                                            playersWinPoints = it.coerceIn(0, 4)
+                                        },
+                                        impostorsCount = impostorsCount,
+                                        onImpostorsCountChange = {
+                                            impostorsCount = it.coerceIn(1, 2)
+                                        },
+                                        onNext = { stage = Stage.NAMES }
+                                    )
                                 }
-                            )
-                        }
 
-                        Stage.PRE_FINISHED -> {
-                            PreFinishedScreen(
-                                onEndRoundClick = { stage = Stage.FINISHED }
-                            )
-                        }
-
-                        Stage.FINISHED -> {
-                            FinishedScreen(
-                                players = players,
-                                roundId = roundId,
-                                impostorWinPoints = impostorWinPoints,
-                                playersWinPoints = playersWinPoints,
-                                onImpostorWin = {
-                                    for (i in players.indices) if (players[i].isImpostor) {
-                                        val p = players[i]
-                                        players[i] = p.copy(points = p.points + impostorWinPoints)
-                                    }
-                                },
-                                onPlayersWin = {
-                                    for (i in players.indices) if (!players[i].isImpostor) {
-                                        val p = players[i]
-                                        players[i] = p.copy(points = p.points + playersWinPoints)
-                                    }
-                                },
-                                onNewRound = { startRound() },
-                                onEndGame = {
-                                    for (i in players.indices) {
-                                        val p = players[i]
-                                        players[i] = p.copy(points = 0, isImpostor = false)
-                                    }
-                                    currentPlayer = 0
-                                    roundId = 0
-                                    stage = Stage.SETTINGS
+                                Stage.NAMES -> {
+                                    PlayerNamesScreen(
+                                        playersCount = playersCount,
+                                        names = players.map { it.name },
+                                        onNameChange = { index, newName ->
+                                            players[index] = players[index].copy(name = newName)
+                                        },
+                                        onStart = { startRound() }
+                                    )
                                 }
-                            )
+
+                                Stage.PASS -> {
+                                    PassPhoneScreen(
+                                        playerLabel = players[currentPlayer].name,
+                                        onPlayerReady = { stage = Stage.REVEAL }
+                                    )
+                                }
+
+                                Stage.REVEAL -> {
+                                    val isImpostor = players[currentPlayer].isImpostor
+                                    pl.kuce.impostorpl.feature.turn.WordRevealScreen(
+                                        playerNumber = currentPlayer + 1,
+                                        isImpostor = isImpostor,
+                                        word = roundWord,
+                                        onMemorized = {
+                                            if (currentPlayer + 1 < playersCount) {
+                                                currentPlayer += 1
+                                                stage = Stage.PASS
+                                            } else {
+                                                stage = Stage.PRE_FINISHED
+                                            }
+                                        }
+                                    )
+                                }
+
+                                Stage.PRE_FINISHED -> {
+                                    PreFinishedScreen(
+                                        onEndRoundClick = { stage = Stage.FINISHED }
+                                    )
+                                }
+
+                                Stage.FINISHED -> {
+                                    FinishedScreen(
+                                        players = players,
+                                        roundId = roundId,
+                                        impostorWinPoints = impostorWinPoints,
+                                        playersWinPoints = playersWinPoints,
+                                        onImpostorWin = {
+                                            for (i in players.indices) if (players[i].isImpostor) {
+                                                val p = players[i]
+                                                players[i] =
+                                                    p.copy(points = p.points + impostorWinPoints)
+                                            }
+                                        },
+                                        onPlayersWin = {
+                                            for (i in players.indices) if (!players[i].isImpostor) {
+                                                val p = players[i]
+                                                players[i] =
+                                                    p.copy(points = p.points + playersWinPoints)
+                                            }
+                                        },
+                                        onNewRound = { startRound() },
+                                        onEndGame = {
+                                            for (i in players.indices) {
+                                                val p = players[i]
+                                                players[i] = p.copy(points = 0, isImpostor = false)
+                                            }
+                                            currentPlayer = 0
+                                            roundId = 0
+                                            stage = Stage.SETTINGS
+                                        }
+                                    )
+                                }
+                            }
                         }
+
+                        BottomBar(
+                            soundOn = isSoundOn,
+                            onToggleSound = { isSoundOn = !isSoundOn },
+                            onExitClick = { showExitDialog = true }
+                        )
+                    }
+
+                    if (showExitDialog) {
+                        ExitConfirmationDialog(
+                            onConfirmExit = {
+                                showExitDialog = false
+                            },
+                            onDismiss = { showExitDialog = false }
+                        )
                     }
                 }
             }
         }
     }
 
+
     @Composable
     private fun PreFinishedScreen(
         onEndRoundClick: () -> Unit
     ) {
-        val context = LocalContext.current
-
         LaunchedEffect(Unit) {
-            pl.kuce.impostorpl.sound.SoundPlayer.play(
-                context,
-                R.raw.start_sound
-            )
+            SoundPlayer.play(R.raw.start_sound)
         }
 
         Column(
@@ -384,6 +430,38 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    @Composable
+    private fun ExitConfirmationDialog(
+        onConfirmExit: () -> Unit,
+        onDismiss: () -> Unit
+    ) {
+        val context = LocalContext.current
+
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onConfirmExit()
+                        (context as? android.app.Activity)?.finish()
+                    }
+                ) {
+                    Text("Tak")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("Nie")
+                }
+            },
+            title = {
+                Text("Zakończyć grę?")
+            },
+            text = {
+                Text("Czy na pewno chcesz opuścić aplikację?")
+            }
+        )
     }
 }
 
