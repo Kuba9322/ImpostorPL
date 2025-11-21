@@ -101,9 +101,9 @@ class MainActivity : ComponentActivity() {
                 var stage by rememberSaveable { mutableStateOf(Stage.SETTINGS) }
 
                 var playersCount by rememberSaveable { mutableIntStateOf(4) }
-                var impostorWinPoints by rememberSaveable { mutableIntStateOf(2) }   // 1..5
-                var playersWinPoints by rememberSaveable { mutableIntStateOf(1) }    // 0..4
-                var impostorsCount by rememberSaveable { mutableIntStateOf(1) }      // 1..2
+                var impostorWinPoints by rememberSaveable { mutableIntStateOf(2) }
+                var playersWinPoints by rememberSaveable { mutableIntStateOf(1) }
+                var impostorsCount by rememberSaveable { mutableIntStateOf(1) }
 
                 var currentPlayer by rememberSaveable { mutableIntStateOf(0) }
                 var roundWord by rememberSaveable { mutableStateOf("") }

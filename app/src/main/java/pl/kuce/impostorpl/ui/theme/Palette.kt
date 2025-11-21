@@ -69,7 +69,6 @@ object Palettes {
         onTertiary = Color(0xFF001217)
     )
 
-    // Chłodny niebieski
     val Blue = AppPalette(
         primary = Color(0xFF2962FF),
         onPrimary = Color.White,
